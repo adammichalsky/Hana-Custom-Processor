@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuite tests="1" failures="0" name="com.hortonworks.nifi.custom.processor.standard.MyProcessorTest" time="0.14" errors="0" skipped="0">
+<testsuite tests="1" failures="0" name="com.hortonworks.nifi.custom.processor.standard.MyProcessorTest" time="0.129" errors="0" skipped="0">
   <properties>
     <property name="idea.version" value="2018.3.5"/>
     <property name="java.runtime.name" value="Java(TM) SE Runtime Environment"/>
@@ -44,7 +44,7 @@
     <property name="java.class.path" value="/Applications/IntelliJ IDEA CE.app/Contents/plugins/maven/lib/maven3/boot/plexus-classworlds-2.5.2.jar"/>
     <property name="java.vm.specification.version" value="11"/>
     <property name="sun.arch.data.model" value="64"/>
-    <property name="sun.java.command" value="org.codehaus.classworlds.Launcher -Didea.version=2018.3.5 verify"/>
+    <property name="sun.java.command" value="org.codehaus.classworlds.Launcher -Didea.version=2018.3.5 package"/>
     <property name="java.home" value="/Library/Java/JavaVirtualMachines/jdk-11.0.2.jdk/Contents/Home"/>
     <property name="user.language" value="en"/>
     <property name="java.specification.vendor" value="Oracle Corporation"/>
@@ -63,5 +63,5 @@
     <property name="ftp.nonProxyHosts" value="amwater.net|*.amwater.net|amwater.com|*.amwater.com"/>
     <property name="sun.cpu.isalist" value=""/>
   </properties>
-  <testcase classname="com.hortonworks.nifi.custom.processor.standard.MyProcessorTest" name="testProcessor" time="0.14"/>
+  <testcase classname="com.hortonworks.nifi.custom.processor.standard.MyProcessorTest" name="testProcessor" time="0.129"/>
 </testsuite>
