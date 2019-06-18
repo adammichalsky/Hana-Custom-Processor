@@ -303,11 +303,6 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
             });
 
 
-            if (customWhereClause != null) {
-                // adding the custom WHERE clause (if defined) to the list of existing clauses.
-                maxValueClauses.add("(" + customWhereClause + ")");
-            }
-
             // Modified specifically to tackle HANA
             whereClause = StringUtils.join(maxValueClauses, " OR ");
             columnsClause = StringUtils.join(maxValueSelectColumns, ", ");
@@ -390,7 +385,7 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                 });
 
                 //Update WHERE list to include new right hand boundaries
-                if(maxValueClauses.size() <= maxValueColumnNameList.size()) { //If there was a pre-existing state
+                if(maxValueClauses.size() <= maxValueColumnNameList.size()) { //If there was not a pre-existing state
                     whereClause = StringUtils.join(maxValueClauses, " OR ");
                 }else { //Construct a where clause that searches for values with-in the prev & new state range
                     IntStream.range(0, ((maxValueClauses.size()/2))).forEach((index) -> {
@@ -410,6 +405,11 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
 
                     });
                     whereClause = StringUtils.join(rangeWhereClauses, " OR ");
+                }
+
+                if (customWhereClause != null) {
+                    // adding the custom WHERE clause (if defined) to the list of existing clauses.
+                    whereClause = whereClause + customWhereClause;
                 }
 
                 boolean stateChange;
