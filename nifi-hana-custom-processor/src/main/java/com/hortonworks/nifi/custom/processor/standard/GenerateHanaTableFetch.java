@@ -412,7 +412,7 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                 if (customWhereClause != null) {
                     // adding the custom WHERE clause (if defined) to the list of existing clauses.
                    // maxValueClauses.add("(" + customWhereClause + ")");
-                    whereClause = whereClause + customWhereClause;
+                    whereClause = whereClause + " " + customWhereClause;
                 }
 
                 boolean stateChange;
