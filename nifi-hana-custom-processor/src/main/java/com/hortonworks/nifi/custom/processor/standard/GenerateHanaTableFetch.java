@@ -303,10 +303,7 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
             });
 
 
-            if (customWhereClause != null) {
-                // adding the custom WHERE clause (if defined) to the list of existing clauses.
-                maxValueClauses.add("(" + customWhereClause + ")");
-            }
+
 
             // Modified specifically to tackle HANA
             whereClause = StringUtils.join(maxValueClauses, " OR ");
@@ -410,6 +407,12 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
 
                     });
                     whereClause = StringUtils.join(rangeWhereClauses, " OR ");
+                }
+
+                if (customWhereClause != null) {
+                    // adding the custom WHERE clause (if defined) to the list of existing clauses.
+                   // maxValueClauses.add("(" + customWhereClause + ")");
+                    whereClause = whereClause + customWhereClause;
                 }
 
                 boolean stateChange;
@@ -520,11 +523,12 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
             maxValue = statePropertyMap.get(getStateKey(tableName,colName.replace("\"",""), dbAdapter));
         }
 
-
+        /**
         if (StringUtils.isEmpty(maxValue) && !isDynamicTableName) {
             // If the table name is static and the fully-qualified key was not found, try just the column name
             maxValue = statePropertyMap.get(getStateKey(tableName,colName.replace(null,""),dbAdapter));
         }
+         **/
         return maxValue;
     }
 
