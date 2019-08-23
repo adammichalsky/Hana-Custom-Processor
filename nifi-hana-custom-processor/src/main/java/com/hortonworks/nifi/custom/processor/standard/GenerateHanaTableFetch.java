@@ -52,6 +52,7 @@ import java.sql.*;
 import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 
 
@@ -274,8 +275,14 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
             List<String> maxValues = new ArrayList<>((maxValueColumnNameList.size()));
 
 
+
             String columnsClause = null;
             List<String> maxValueSelectColumns = new ArrayList<>(maxValueColumnNameList.size() + 1);
+            //Used to keep track of the amount of null values in the existing state and new state. Null values are not considered
+            // in the SQL however they will affect logic when determining if this processor is running initially or
+            // for a delta... see line 400
+            Set<String> nonNullMaxColumns = new HashSet<>(maxValueColumnNameList.size());
+
             maxValueSelectColumns.add("COUNT(*)");
 
             // For each maximum-value column, get a WHERE filter and a MAX(column) alias
@@ -284,10 +291,10 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                 maxValueSelectColumns.add("MAX(" + colName + ") " + colName);
 
                 String maxValue =  getColumnStateMaxValue(tableName, statePropertyMap, colName, dbAdapter);
+                if(!StringUtils.isEmpty(maxValue)) {
 
-                if (!StringUtils.isEmpty(maxValue)) {
 
-                    if(columnTypeMap.isEmpty()){
+                    if (columnTypeMap.isEmpty()) {
                         // This means column type cache is clean after instance reboot. We should re-cache column type
                         super.setup(context, false, finalFileToProcess);
                     }
@@ -299,6 +306,7 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                     // Changed to sign from > to >= to account for changes when using a date as a delta pointer
                     maxValueClauses.add(colName + (maxValue.equals("0") ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
                     maxValues.add(maxValue);
+                    nonNullMaxColumns.add(colName);
                 }
             });
 
@@ -382,12 +390,13 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                         // Add a condition for the WHERE clause
                         maxValueClauses.add(colName + " <= " + getLiteralByType(type, maxValue, dbAdapter.getName()));
                         maxValues.add(maxValue);
-
+                        nonNullMaxColumns.add(colName);
                     }
                 });
 
+
                 //Update WHERE list to include new right hand boundaries
-                if(maxValueClauses.size() <= maxValueColumnNameList.size()) { //If there was a pre-existing state
+                if(maxValueClauses.size() <= nonNullMaxColumns.size()) { //If there wasn't a pre-existing state
                     whereClause = StringUtils.join(maxValueClauses, " OR ");
                 }else { //Construct a where clause that searches for values with-in the prev & new state range
                     IntStream.range(0, ((maxValueClauses.size()/2))).forEach((index) -> {
@@ -396,13 +405,16 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                         int clauseLength = clauseOne.length();
 
 
-
                         //For cases when the value timestamp value is 0
                         if(!clauseOne.substring(clauseLength-2,clauseLength).equals(" 0"))
                         {
-                            rangeWhereClauses.add("(" + clauseOne + " AND " + clauseTwo + ")");
+                            if(!clauseOne.substring(clauseOne.length()-14, clauseOne.length()).equals(clauseTwo.substring(clauseTwo.length()-14, clauseTwo.length()))) {
+                                rangeWhereClauses.add("(" + clauseOne + " AND " + clauseTwo + ")");
+                            }
                         }else{
-                            rangeWhereClauses.add("(" + clauseOne + ")");
+                            // Adam Michalsky - 20190822
+                            // This logic should be omitted it writes SQL that grabs the entire data set
+                            //rangeWhereClauses.add("(" + clauseOne + ")");
                         }
 
                     });
@@ -416,7 +428,7 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                 }
 
                 boolean stateChange;
-                if(maxValues.size()>maxValueColumnNameList.size()) {
+                if(maxValues.size()>nonNullMaxColumns.size()) {
                     stateChange = false;
                     for (int i = 0; i < maxValues.size() / 2; i++) {
                         String prevMaxValue = maxValues.get(i);
