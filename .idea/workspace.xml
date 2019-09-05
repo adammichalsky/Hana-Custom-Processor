@@ -26,12 +26,16 @@
   </component>
   <component name="ProjectId" id="1PnpQkihEQdvfxwW7YTK2y0W9iD" />
   <component name="PropertiesComponent">
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/nifi-hana-custom-processor" />
     <property name="project.structure.last.edited" value="Modules" />
     <property name="project.structure.proportion" value="0.15" />
     <property name="project.structure.side.proportion" value="0.2" />
     <property name="settings.editor.selected.configurable" value="reference.projectsettings.compiler.javacompiler" />
   </component>
   <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\michala\Documents\GitHub\Hana-Custom-Processor\nifi-hana-custom-processor" />
+    </key>
     <key name="MoveFile.RECENT_KEYS">
       <recent name="C:\Users\michala\Documents\GitHub\Hana-Custom-Processor\nifi-hana-custom-processor" />
     </key>

@@ -52,7 +52,7 @@ import java.sql.*;
 import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.IntStream;
 
 
@@ -259,21 +259,23 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
             String whereClause = null;
             List<String> maxValueColumnNameList = StringUtils.isEmpty(maxValueColumnNames)
                     ? new ArrayList<>(0)
-                    : Arrays.asList(maxValueColumnNames.split("\\s*,\\s*"));
+                    : Arrays.asList(maxValueColumnNames.replaceAll("\\s+", "").split("\\s*,\\s*"));
 
             List<String> orderByColumnNamesList = StringUtils.isEmpty(orderByColumnNames)
                     ? new ArrayList<>()
                     : Arrays.asList(orderByColumnNames.split("\\s*,\\s*"));
 
             // fall back to the original implementation .. do the order by the max value column list
+            /**
             if(orderByColumnNamesList.isEmpty()){
                 orderByColumnNamesList.addAll(maxValueColumnNameList);
             }
+             */
 
             List<String> maxValueClauses = new ArrayList<>(maxValueColumnNameList.size());
             List<String> rangeWhereClauses = new ArrayList<>(maxValueColumnNameList.size());
             List<String> maxValues = new ArrayList<>((maxValueColumnNameList.size()));
-
+            AtomicBoolean stateChange = new AtomicBoolean(false);
 
 
             String columnsClause = null;
@@ -307,7 +309,7 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                     maxValueClauses.add(colName + (maxValue.equals("0") ? " > " : " >= ") + getLiteralByType(type, maxValue, dbAdapter.getName()));
                     maxValues.add(maxValue);
                     nonNullMaxColumns.add(colName);
-                }
+                                    }
             });
 
 
@@ -391,6 +393,7 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                         maxValueClauses.add(colName + " <= " + getLiteralByType(type, maxValue, dbAdapter.getName()));
                         maxValues.add(maxValue);
                         nonNullMaxColumns.add(colName);
+                        stateChange.set(true);
                     }
                 });
 
@@ -410,6 +413,7 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                         {
                             if(!clauseOne.substring(clauseOne.length()-14, clauseOne.length()).equals(clauseTwo.substring(clauseTwo.length()-14, clauseTwo.length()))) {
                                 rangeWhereClauses.add("(" + clauseOne + " AND " + clauseTwo + ")");
+                                stateChange.set(true);
                             }
                         }else{
                             // Adam Michalsky - 20190822
@@ -418,7 +422,13 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                         }
 
                     });
-                    whereClause = StringUtils.join(rangeWhereClauses, " OR ");
+                    if(rangeWhereClauses.size()!=0){
+                        whereClause = StringUtils.join(rangeWhereClauses, " OR ");
+                    }
+                    else{
+                        stateChange.set(false);
+                    }
+
                 }
 
                 if (customWhereClause != null) {
@@ -427,25 +437,27 @@ public class GenerateHanaTableFetch extends AbstractDatabaseFetchProcessor{
                     whereClause = whereClause + " " + customWhereClause;
                 }
 
-                boolean stateChange;
-                if(maxValues.size()>nonNullMaxColumns.size()) {
-                    stateChange = false;
+
+                if(maxValues.size()>nonNullMaxColumns.size() && !stateChange.get()) {
                     for (int i = 0; i < maxValues.size() / 2; i++) {
                         String prevMaxValue = maxValues.get(i);
                         String newMaxValue = maxValues.get(i + ((maxValueClauses.size() / 2)));
-                        if (!prevMaxValue.equals(newMaxValue) && !stateChange) {
-                            stateChange = true;
+                        if (!prevMaxValue.equals(newMaxValue) && !stateChange.get()) {
+                            stateChange.set(true);
                             break;
                         }
                     }
-                }else{
-                    stateChange = true;
                 }
+
+                if(StringUtils.isEmpty(maxValueColumnNames)) {
+                    stateChange.set(true);
+                }
+
                 final long numberOfFetches = (partitionSize == 0) ? 1 : (rowCount / partitionSize) + (rowCount % partitionSize == 0 ? 0 : 1);
 
                 // Generate SQL statements to read "pages" of data
                 FlowFile sqlFlowFile = null ;
-                if(stateChange){
+                if(stateChange.get()){
                     for (long i = 0; i < numberOfFetches; i++) {
                         Long limit = partitionSize == 0 ? null : (long) partitionSize;
                         Long offset = partitionSize == 0 ? null : i * partitionSize;
